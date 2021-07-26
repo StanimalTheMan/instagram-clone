@@ -6,9 +6,10 @@ import {
   Hidden,
   InputBase,
   Typography,
+  Zoom,
 } from "@material-ui/core";
 import React from "react";
-import { useNavbarStyles, WhiteTooltip } from "../../styles";
+import { useNavbarStyles, WhiteTooltip, RedTooltip } from "../../styles";
 import { Link, useHistory } from "react-router-dom";
 import logo from "../../images/logo.png";
 import {
@@ -21,25 +22,36 @@ import {
   HomeIcon,
   HomeActiveIcon,
 } from "../../icons";
+import NotificationTooltip from "../notification/NotificationTooltip";
 import { defaultCurrentUser, getDefaultUser } from "../../data";
+import NotificationList from "../notification/NotificationList";
+import { useNProgress } from "@tanem/react-nprogress";
 
 function Navbar({ minimalNavbar }) {
   const classes = useNavbarStyles();
   const history = useHistory();
+  const [isLoadingPage, setLoadingPage] = React.useState(true);
   const path = history.location.pathname;
 
+  React.useEffect(() => {
+    setLoadingPage(false);
+  }, [path]);
+
   return (
-    <AppBar className={classes.appBar}>
-      <section className={classes.section}>
-        <Logo />
-        {!minimalNavbar && (
-          <>
-            <Search history={history} />
-            <Links path={path} />
-          </>
-        )}
-      </section>
-    </AppBar>
+    <>
+      <Progress isAnimating={isLoadingPage} />
+      <AppBar className={classes.appBar}>
+        <section className={classes.section}>
+          <Logo />
+          {!minimalNavbar && (
+            <>
+              <Search history={history} />
+              <Links path={path} />
+            </>
+          )}
+        </section>
+      </AppBar>
+    </>
   );
 }
 
@@ -132,14 +144,31 @@ function Search({ history }) {
 
 function Links({ path }) {
   const classes = useNavbarStyles();
+  const [showTooltip, setTooltip] = React.useState(true);
   const [showList, setList] = React.useState(false);
+
+  React.useEffect(() => {
+    const timeout = setTimeout(handleHideTooltip, 5000);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, []);
 
   function handleToggleList() {
     setList((prev) => !prev);
   }
 
+  function handleHideTooltip() {
+    setTooltip(false);
+  }
+
+  function handleHideList() {
+    setList(false);
+  }
+
   return (
     <div className={classes.linksContainer}>
+      {showList && <NotificationList handleHideList={handleHideList} />}
       <div className={classes.linksWrapper}>
         <Hidden xsDown>
           <AddIcon />
@@ -148,9 +177,17 @@ function Links({ path }) {
         <Link to="/explore">
           {path === "/explore" ? <ExploreActiveIcon /> : <ExploreIcon />}
         </Link>
-        <div className={classes.notifications} onClick={handleToggleList}>
-          {showList ? <LikeActiveIcon /> : <LikeIcon />}
-        </div>
+        <RedTooltip
+          arrow
+          open={showTooltip}
+          onOpen={handleHideTooltip}
+          TransitionComponent={Zoom}
+          title={<NotificationTooltip />}
+        >
+          <div className={classes.notifications} onClick={handleToggleList}>
+            {showList ? <LikeActiveIcon /> : <LikeIcon />}
+          </div>
+        </RedTooltip>
         <Link to={`/${defaultCurrentUser.username}`}>
           <div
             className={
@@ -164,6 +201,33 @@ function Links({ path }) {
             className={classes.profileImage}
           />
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function Progress({ isAnimating }) {
+  const classes = useNavbarStyles();
+  const { animationDuration, isFinished, progress } = useNProgress({
+    isAnimating,
+  });
+
+  return (
+    <div
+      className={classes.progressContainer}
+      style={{
+        opacity: isFinished ? 0 : 1,
+        transition: `opacity ${animationDuration}ms  linear`,
+      }}
+    >
+      <div
+        className={classes.progressBar}
+        style={{
+          marginLeft: `${(-1 + progress) * 100}%`,
+          transition: `margin-left ${animationDuration}ms linear`,
+        }}
+      >
+        <div className={classes.progressBackground} />
       </div>
     </div>
   );
