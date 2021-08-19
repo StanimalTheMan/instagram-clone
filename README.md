@@ -1,4 +1,6 @@
-# instagram-react12
+# instagram-react-clone-lite
+
+https://instagram-delta-dun.vercel.app/
 
 ## Routes
 
@@ -56,4 +58,5 @@ Components:
 - ProfilePicture
 - Layout
 - SEO
+
 # instagram-clone
