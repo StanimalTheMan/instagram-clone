@@ -1,6 +1,6 @@
-import { Typography } from "@material-ui/core";
 import React from "react";
 import { useGridPostStyles } from "../../styles";
+import { Typography } from "@material-ui/core";
 import { useHistory } from "react-router-dom";
 
 function GridPost({ post }) {
@@ -14,16 +14,19 @@ function GridPost({ post }) {
     });
   }
 
+  const likesCount = post.likes_aggregate.aggregate.count;
+  const commentsCount = post.comments_aggregate.aggregate.count;
+
   return (
     <div onClick={handleOpenPostModal} className={classes.gridPostContainer}>
       <div className={classes.gridPostOverlay}>
         <div className={classes.gridPostInfo}>
           <span className={classes.likes} />
-          <Typography>{post.likes}</Typography>
+          <Typography>{likesCount}</Typography>
         </div>
         <div className={classes.gridPostInfo}>
           <span className={classes.comments} />
-          <Typography>{post.comments.length}</Typography>
+          <Typography>{commentsCount}</Typography>
         </div>
       </div>
       <img src={post.media} alt="Post cover" className={classes.image} />

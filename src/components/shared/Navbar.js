@@ -1,15 +1,15 @@
+import React from "react";
+import { useNavbarStyles, WhiteTooltip, RedTooltip } from "../../styles";
 import {
   AppBar,
+  Hidden,
+  InputBase,
   Avatar,
   Fade,
   Grid,
-  Hidden,
-  InputBase,
   Typography,
   Zoom,
 } from "@material-ui/core";
-import React from "react";
-import { useNavbarStyles, WhiteTooltip, RedTooltip } from "../../styles";
 import { Link, useHistory } from "react-router-dom";
 import logo from "../../images/logo.png";
 import {
@@ -23,9 +23,14 @@ import {
   HomeActiveIcon,
 } from "../../icons";
 import NotificationTooltip from "../notification/NotificationTooltip";
-import { defaultCurrentUser, getDefaultUser } from "../../data";
+// import { defaultCurrentUser, getDefaultUser } from "../../data";
 import NotificationList from "../notification/NotificationList";
 import { useNProgress } from "@tanem/react-nprogress";
+import { useLazyQuery } from "@apollo/react-hooks";
+import { SEARCH_USERS } from "../../graphql/queries";
+import { UserContext } from "../../App";
+import AddPostDialog from "../post/AddPostDialog";
+import { isAfter } from "date-fns";
 
 function Navbar({ minimalNavbar }) {
   const classes = useNavbarStyles();
@@ -71,16 +76,24 @@ function Logo() {
 
 function Search({ history }) {
   const classes = useNavbarStyles();
-  const [loading] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState([]);
   const [query, setQuery] = React.useState("");
+  const [searchUsers, { data }] = useLazyQuery(SEARCH_USERS);
 
   const hasResults = Boolean(query) && results.length > 0;
 
   React.useEffect(() => {
     if (!query.trim()) return;
-    setResults(Array.from({ length: 5 }, () => getDefaultUser()));
-  }, [query]);
+    setLoading(true);
+    const variables = { query: `%${query}%` };
+    searchUsers({ variables });
+    if (data) {
+      setResults(data.users);
+      setLoading(false);
+    }
+    // setResults(Array.from({ length: 5 }, () => getDefaultUser()));
+  }, [query, data, searchUsers]);
 
   function handleClearInput() {
     setQuery("");
@@ -143,9 +156,17 @@ function Search({ history }) {
 }
 
 function Links({ path }) {
+  const { me, currentUserId } = React.useContext(UserContext);
+  const newNotifications = me.notifications.filter(({ created_at }) =>
+    isAfter(new Date(created_at), new Date(me.last_checked))
+  );
+  const hasNotifications = newNotifications.length > 0;
   const classes = useNavbarStyles();
-  const [showTooltip, setTooltip] = React.useState(true);
+  const [showTooltip, setTooltip] = React.useState(hasNotifications);
   const [showList, setList] = React.useState(false);
+  const [media, setMedia] = React.useState(null);
+  const [showAddPostDialog, setAddPostDialog] = React.useState(false);
+  const inputRef = React.useRef();
 
   React.useEffect(() => {
     const timeout = setTimeout(handleHideTooltip, 5000);
@@ -166,12 +187,40 @@ function Links({ path }) {
     setList(false);
   }
 
+  function openFileInput() {
+    inputRef.current.click();
+  }
+
+  function handleAddPost(event) {
+    setMedia(event.target.files[0]);
+    setAddPostDialog(true);
+  }
+
+  function handleClose() {
+    setAddPostDialog(false);
+  }
+
   return (
     <div className={classes.linksContainer}>
-      {showList && <NotificationList handleHideList={handleHideList} />}
+      {showList && (
+        <NotificationList
+          notifications={me.notifications}
+          handleHideList={handleHideList}
+          currentUserId={currentUserId}
+        />
+      )}
       <div className={classes.linksWrapper}>
+        {showAddPostDialog && (
+          <AddPostDialog media={media} handleClose={handleClose} />
+        )}
         <Hidden xsDown>
-          <AddIcon />
+          <input
+            type="file"
+            style={{ display: "none" }}
+            ref={inputRef}
+            onChange={handleAddPost}
+          />
+          <AddIcon onClick={openFileInput} />
         </Hidden>
         <Link to="/">{path === "/" ? <HomeActiveIcon /> : <HomeIcon />}</Link>
         <Link to="/explore">
@@ -182,24 +231,20 @@ function Links({ path }) {
           open={showTooltip}
           onOpen={handleHideTooltip}
           TransitionComponent={Zoom}
-          title={<NotificationTooltip />}
+          title={<NotificationTooltip notifications={newNotifications} />}
         >
-          <div className={classes.notifications} onClick={handleToggleList}>
+          <div
+            className={hasNotifications ? classes.notifications : ""}
+            onClick={handleToggleList}
+          >
             {showList ? <LikeActiveIcon /> : <LikeIcon />}
           </div>
         </RedTooltip>
-        <Link to={`/${defaultCurrentUser.username}`}>
+        <Link to={`/${me.username}`}>
           <div
-            className={
-              path === `/${defaultCurrentUser.username}`
-                ? classes.profileActive
-                : ""
-            }
+            className={path === `/${me.username}` ? classes.profileActive : ""}
           ></div>
-          <Avatar
-            src={defaultCurrentUser.profile_image}
-            className={classes.profileImage}
-          />
+          <Avatar src={me.profile_image} className={classes.profileImage} />
         </Link>
       </div>
     </div>
@@ -217,7 +262,7 @@ function Progress({ isAnimating }) {
       className={classes.progressContainer}
       style={{
         opacity: isFinished ? 0 : 1,
-        transition: `opacity ${animationDuration}ms  linear`,
+        transition: `opacity ${animationDuration}ms linear`,
       }}
     >
       <div

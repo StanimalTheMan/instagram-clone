@@ -1,7 +1,7 @@
 import React from "react";
-import ExploreGrid from "../components/explore/ExploreGrid";
-import ExploreSuggestions from "../components/explore/ExploreSuggestions";
 import Layout from "../components/shared/Layout";
+import ExploreSuggestions from "../components/explore/ExploreSuggestions";
+import ExploreGrid from "../components/explore/ExploreGrid";
 
 function ExplorePage() {
   return (

@@ -1,6 +1,6 @@
 import React from "react";
 import { useProfileTabsStyles } from "../../styles";
-import { Divider, Hidden, Tab, Tabs, Typography } from "@material-ui/core";
+import { Divider, Tabs, Tab, Hidden, Typography } from "@material-ui/core";
 import { GridIcon, SaveIcon } from "../../icons";
 import GridPost from "../shared/GridPost";
 
@@ -52,7 +52,7 @@ function ProfileTabs({ user, isOwner }) {
             classes={{ indicator: classes.tabsIndicator }}
           >
             <Tab
-              icon={<GridIcon fill={value === 0 ? "3897f0" : undefined} />}
+              icon={<GridIcon fill={value === 0 ? "#3897f0" : undefined} />}
               classes={{ root: classes.tabRoot }}
             />
             {isOwner && (
@@ -64,7 +64,7 @@ function ProfileTabs({ user, isOwner }) {
           </Tabs>
         </Hidden>
         <Hidden smUp>{user.posts.length === 0 && <Divider />}</Hidden>
-        {value === 0 && <ProfilePosts user={user} isowner={isOwner} />}
+        {value === 0 && <ProfilePosts user={user} isOwner={isOwner} />}
         {value === 1 && <SavedPosts user={user} />}
       </section>
     </>
@@ -98,20 +98,32 @@ function ProfilePosts({ user, isOwner }) {
   );
 }
 
-function SavedPosts() {
+function SavedPosts({ user }) {
   const classes = useProfileTabsStyles();
 
+  if (user.saved_posts.length === 0) {
+    return (
+      <section className={classes.savedPostsSection}>
+        <div className={classes.noContent}>
+          <div className={classes.savePhotoIcon} />
+          <Typography variant="h4">Save</Typography>
+          <Typography align="center">
+            Save photos and videos that you want to see again. No one is
+            notified, and only you can see what you've saved.
+          </Typography>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className={classes.savedPostsSection}>
-      <div className={classes.noContent}>
-        <div className={classes.savePhotoIcon} />
-        <Typography variant="h4">Save</Typography>
-        <Typography align="center">
-          Save photos and videos that you want to see again. No one is notified,
-          and only you can see what you've saved.
-        </Typography>
+    <article className={classes.article}>
+      <div className={classes.postContainer}>
+        {user.saved_posts.map(({ post }) => (
+          <GridPost key={post.id} post={post} />
+        ))}
       </div>
-    </section>
+    </article>
   );
 }
 

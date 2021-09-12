@@ -10,13 +10,13 @@ const provider = new firebase.auth.GoogleAuthProvider();
 
 // Find these options in your Firebase console
 firebase.initializeApp({
-  apiKey: "AIzaSyBAT2sJhESxCiy6Rvsl2PtXDCKMD6Dw9to",
+  apiKey: "AIzaSyBSSkYyl4N9Uaoaas5vn4e2Z43XBquRfTE",
   authDomain: "insta-react12-5f7c9.firebaseapp.com",
+  databaseURL: "https://insta-react12-5f7c9-default-rtdb.firebaseio.com",
   projectId: "insta-react12-5f7c9",
   storageBucket: "insta-react12-5f7c9.appspot.com",
   messagingSenderId: "732299744328",
   appId: "1:732299744328:web:41b36291fbe54f2b14347d",
-  measurementId: "G-TQYS4DBK8S",
 });
 
 export const AuthContext = React.createContext();
@@ -54,8 +54,31 @@ function AuthProvider({ children }) {
     });
   }, []);
 
-  async function signInWithGoogle() {
-    await firebase.auth().signInWithPopup(provider);
+  async function logInWithGoogle() {
+    const data = await firebase.auth().signInWithPopup(provider);
+    if (data.additionalUserInfo.isNewUser) {
+      // console.log({ data });
+      const { uid, displayName, email, photoURL } = data.user;
+      const username = `${displayName.replace(/\s+/g, "")}${uid.slice(-5)}`;
+      const variables = {
+        userId: uid,
+        name: displayName,
+        username,
+        email,
+        bio: "",
+        website: "",
+        phoneNumber: "",
+        profileImage: photoURL,
+      };
+      await createUser({ variables });
+    }
+  }
+
+  async function logInWithEmailAndPassword(email, password) {
+    const data = await firebase
+      .auth()
+      .signInWithEmailAndPassword(email, password);
+    return data;
   }
 
   async function signUpWithEmailAndPassword(formData) {
@@ -83,6 +106,10 @@ function AuthProvider({ children }) {
     setAuthState({ status: "out" });
   }
 
+  async function updateEmail(email) {
+    await authState.user.updateEmail(email);
+  }
+
   if (authState.status === "loading") {
     return null;
   } else {
@@ -90,9 +117,11 @@ function AuthProvider({ children }) {
       <AuthContext.Provider
         value={{
           authState,
-          signInWithGoogle,
+          logInWithGoogle,
+          logInWithEmailAndPassword,
           signOut,
           signUpWithEmailAndPassword,
+          updateEmail,
         }}
       >
         {children}
